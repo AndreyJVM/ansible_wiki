@@ -1,0 +1,4 @@
+# VS Code
+/node_modules/
+*.log
+.vscode/
