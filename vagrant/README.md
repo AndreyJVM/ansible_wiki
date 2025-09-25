@@ -27,3 +27,16 @@
 ```shell
     vagrant up 
 ```
+
+### Test connect with SSH to the server
+```shell
+    ssh vagrant@127.0.0.1 -p 2223 # 2224 2225 2226 2227
+    # yes
+```
+
+
+### Stops and deletes all traces of the vagrant machine
+
+```shell
+    vagrant destroy 
+```
