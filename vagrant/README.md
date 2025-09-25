@@ -34,6 +34,11 @@
     # yes
 ```
 
+### Stop all vagrant machine
+```shell
+    vagrant halt
+```
+
 
 ### Stops and deletes all traces of the vagrant machine
 
