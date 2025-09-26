@@ -1,48 +1,92 @@
 ---
-- name: "Preconfig"
-  hosts: all
+- name: Preconfig
+  hosts: cluster
   tasks:
-    - name: "Install Docker"
+    - name: Docker installation
       block:
-        - name: "Adding the universe"
+        - name: Add universal repo
           apt_repository:
-            repo: "deb http://us.archive.ubuntu.com/ubuntu/ {{ ansible_distribution_relese }} universe"
+            repo: "deb http://archive.ubuntu.com/ubuntu/ {{ ansible_distribution_release }} universe"
             state: present
 
-        - name: "Install sopport package"
+        - name: Install additional packages
           apt:
             name:
               - apt-transport-https
-              - ca-certificate
+              - ca-certificates
               - curl
               - gnupg
               - lsb-release
-            update_cache: yes
-            cache_valid_time: 3600
+            update-cache: yes
+            cache_valid_time: 86400
+            
+        - name: Create directory for APT keys
+          file:
+            path: /etc/apt/keyrings/
+            state: directory
+            mode: 0755
 
-        - name: "Adding Docker key"
-          apt_key:
+        - name: Download Docker repo key
+          get_url:
             url: https://download.docker.com/linux/ubuntu/gpg
-            state: present
+            dest: /etc/apt/keyrings/docker.asc
+        
+        - name: Set permissions on Docker repo key
+          file:
+            path: /etc/apt/keyrings/docker.asc
+            mode: "0644"
 
-        - name: "Adding stable repository Docker"
+        - name: Add Docker repo
           apt_repository:
             repo: >
-              deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg]
-              https://download.docker.com/linux/ubuntu
-              {{ ansible_distribution_relese }} stable
+              deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
             state: present
-            update_cache: yes
+            update-cache: yes
             filename: docker
 
-        - name: "Install Docker-ce"
+        - name: Install Docker-ce
           apt:
-            name: docker-ce 
-            state: present
-            update_cache: yes
+            pkg:
+              - docker-ce
+              - docker-ce-cli
+              - containerd.io
+              - docker-buildx-plugin
+              - docker-compose-plugin
+            update-cache: yes
+            cache_valid_time: 86400
 
-        - name: "Check status docker-ce service and restarting"
+        - name: Docker restarted
           service:
             name: docker
             state: restarted
             enabled: yes
+      become: yes
+      
+    # - name: Install Docker-compose
+    #   block:
+    #     - name: Get latest Docker-compose version
+    #       uri:
+    #         url: https://api.github.com/repos/docker/compose/releases/latest
+    #         body_format: json
+    #       register: page
+
+    #     - name: Install Docker-compose
+    #       get_url:
+    #         url: "https://github.com/docker/compose/releases/download/{{ page.json.tag_name }}/docker-compose-Linux-x86_64"
+    #         dest: /usr/local/bin/docker-compose
+    #         mode: 0755
+    #   become: yes
+
+    - name: Finish installation
+      block:
+        - name: Add user in Docker group
+          user:
+            name: "{{ansible_user}}"
+            groups: docker
+            append: yes
+
+        - name: Reboot
+          reboot:
+      become: yes
+
+# ansible-playbook -i demo-server config.yml -K
